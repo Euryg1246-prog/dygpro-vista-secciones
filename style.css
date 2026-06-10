@@ -2120,3 +2120,58 @@ td { padding: 4px 7px !important; font-size: 10px !important; }
 .trade-form-v2 select { padding: 4px 7px !important; font-size: 11px !important; }
 .trade-form-v2 textarea { min-height: 50px !important; font-size: 11px !important; }
 .form-section-title { font-size: 9px !important; padding: 3px 9px !important; margin-top: 3px !important; }
+
+/* ============================================================
+   ADMIN — "Mis Estudiantes" / Modo "viendo journal" (solo lectura)
+   ============================================================ */
+#adminViewBanner {
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: linear-gradient(90deg, rgba(251,191,36,0.16), rgba(251,191,36,0.04));
+  border: 1px solid rgba(251,191,36,0.4);
+  border-radius: 12px;
+  padding: 12px 18px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--text);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+#adminViewBanner strong { color: var(--gold); }
+#adminViewBanner button {
+  background: var(--gold);
+  border: none;
+  color: #1a1305;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: 'DM Sans', sans-serif;
+}
+
+#adminStudentsList .account-status-box p { margin-top: 2px; }
+
+/* Ocultar todo lo que permita modificar datos mientras se ve a un estudiante */
+body.admin-viewing #section-entry,
+body.admin-viewing #section-data,
+body.admin-viewing #section-config,
+body.admin-viewing #upgrade-banner,
+body.admin-viewing #savePersonalNote,
+body.admin-viewing #deletePersonalNote,
+body.admin-viewing #historyClearBtn,
+body.admin-viewing .delete-btn,
+body.admin-viewing .gallery-upload-area,
+body.admin-viewing #tradeImageInput,
+body.admin-viewing #profilePhotoInput,
+body.admin-viewing [onclick*="saveProfile"],
+body.admin-viewing [onclick*="profilePhotoInput"],
+body.admin-viewing [onclick*="deleteImage"],
+body.admin-viewing [onclick*="saveImageNote"],
+body.admin-viewing [onclick*="'section-entry'"],
+body.admin-viewing [onclick*="'section-data'"],
+body.admin-viewing [onclick*="'section-config'"]
+{ display: none !important; pointer-events: none !important; }
