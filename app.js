@@ -855,9 +855,27 @@ async function startCheckout() {
 /* ============================================================
    SONIDO DE CAMPANA — Web Audio API
    ============================================================ */
+let bellAudioCtx = null;
+
+function getBellAudioContext() {
+  if (!bellAudioCtx) {
+    bellAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (bellAudioCtx.state === 'suspended') {
+    bellAudioCtx.resume();
+  }
+  return bellAudioCtx;
+}
+
+// Desbloquea el audio en la primera interacción del usuario (los navegadores
+// bloquean el sonido automático hasta que hay un click/tecla del usuario)
+['click', 'keydown', 'touchstart'].forEach(evt => {
+  document.addEventListener(evt, () => getBellAudioContext(), { once: true });
+});
+
 function playBell() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = getBellAudioContext();
 
     // Campana: frecuencia fundamental + armónicos
     const frequencies = [523, 659, 784, 1047];
@@ -1112,6 +1130,7 @@ function showApp() {
   if (av) av.textContent = initials;
   const saved = localStorage.getItem('dygpro_view') || 'scroll';
   setView(saved);
+  loadProfile();
   loadTradesFromSupabase();
   loadNotesFromSupabase();
   loadGalleryFromSupabase();
@@ -1540,11 +1559,15 @@ form.addEventListener("submit", async function(e) {
 
   let saveOk = false;
   try {
-    await Promise.race([
+    const result = await Promise.race([
       saveTradeToSupabase(trade),
       new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000))
     ]);
-    saveOk = true;
+    if (result) {
+      saveOk = true;
+    } else {
+      showToast('⚠️ Error al guardar', 'La base de datos rechazó el registro. Revisa la consola (F12) para más detalles.');
+    }
   } catch(e) {
     console.log('Save trade error:', e.message);
     showToast('⚠️ Error al guardar', 'No se pudo conectar con Supabase. Intenta de nuevo.');
@@ -4726,25 +4749,23 @@ function loadProfile() {
         if (error || !data) return;
         isAdmin = !!data.is_admin;
         applyAdminUI();
-        if (data.trader_name || data.nickname || data.photo || data.system_config) {
-          traderProfile.name       = data.trader_name || traderProfile.name || '';
-          traderProfile.nickname   = data.nickname    || traderProfile.nickname || '';
-          traderProfile.capital    = data.capital     || traderProfile.capital || '';
-          traderProfile.broker     = data.broker      || traderProfile.broker || '';
-          traderProfile.instrument = data.instrument  || traderProfile.instrument || '';
-          traderProfile.motto      = data.motto       || traderProfile.motto || '';
-          if (data.photo) traderProfile.photo = data.photo;
-          try { localStorage.setItem('dygpro_profile', JSON.stringify(traderProfile)); } catch(e) {}
-          // Restaurar config del sistema desde Supabase
-          if (data.system_config) {
-            try {
-              const cloudConfig = JSON.parse(data.system_config);
-              systemConfig = { ...DEFAULT_CONFIG, ...cloudConfig };
-              localStorage.setItem('dygpro_system_config', JSON.stringify(systemConfig));
-            } catch(e) { console.log('Error parseando system_config:', e); }
-          }
-          applyProfileToUI();
-        }
+        traderProfile = {
+          name:       data.trader_name || '',
+          nickname:   data.nickname    || '',
+          capital:    data.capital     || '',
+          broker:     data.broker      || '',
+          instrument: data.instrument  || '',
+          motto:      data.motto       || '',
+          photo:      data.photo       || ''
+        };
+        try { localStorage.setItem('dygpro_profile', JSON.stringify(traderProfile)); } catch(e) {}
+        // Restaurar config del sistema desde Supabase (o por defecto si la cuenta es nueva)
+        try {
+          const cloudConfig = data.system_config ? JSON.parse(data.system_config) : {};
+          systemConfig = { ...DEFAULT_CONFIG, ...cloudConfig };
+          localStorage.setItem('dygpro_system_config', JSON.stringify(systemConfig));
+        } catch(e) { console.log('Error parseando system_config:', e); }
+        applyProfileToUI();
       });
   }
 }
@@ -4888,7 +4909,7 @@ function applyProfileToUI() {
   }
   if (dashName) dashName.textContent = name || nickname || 'Mi Perfil';
   if (dashNick) dashNick.textContent = (nickname && name) ? `"${nickname}"` : '';
-  if (dashCapital) dashCapital.textContent = capital ? `💰 ${Number(capital).toLocaleString()}` : '';
+  if (dashCapital) dashCapital.textContent = capital ? `💰 $${Number(capital).toLocaleString()}` : '';
 
   // Preview card
   const card = document.getElementById('profilePreviewCard');
